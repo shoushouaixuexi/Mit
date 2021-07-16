@@ -20,6 +20,7 @@ package raft
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"../labrpc"
 )
@@ -28,7 +29,7 @@ import (
 // import "../labgob"
 
 //
-// as each Raft peer becomes aware that successive log entries are
+// as each Raft peer becomes4 aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
 // tester) on the same server, via the applyCh passed to Make(). set
 // CommandValid to true to indicate that the ApplyMsg contains a newly
@@ -44,6 +45,19 @@ type ApplyMsg struct {
 	CommandIndex int
 }
 
+type LogEntry struct {
+	Command interface{}
+	Term    int
+}
+
+type RaftState int
+
+const (
+	Follower = iota
+	Candidate
+	Leader
+)
+
 //
 // A Go object implementing a single Raft peer.
 //
@@ -58,6 +72,37 @@ type Raft struct {
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
 
+	// 服务器的状态
+	state       RaftState // Raft server state
+	leaderId    int       // leader id
+	lastReceive time.Time // last time receive message
+
+	// 所有服务器上的持久性状态 (在响应RPC请求之前 已经更新到了稳定的存储设备)
+	currentTerm int         // latest term server has seen(服务器已知最新的任期)
+	votedFor    int         // candidateId that received vote in current term(当前任期内收到选票的候选者id 如果没有投给任何候选者 则为空)
+	log         []*LogEntry // log entries(日志条目;每个条目包含了用于状态机的命令，以及领导者接收到该条目时的任期)
+
+	// 所有服务器，易失状态
+	commitIndex int // 已知的最大已提交索引
+	lastApplied int // 当前应用到状态机的索引
+
+	// 仅Leader，易失状态（成为leader时重置）
+	nextIndex  []int //	每个follower的log同步起点索引（初始为leader log的最后一项）
+	matchIndex []int // 每个follower的log同步进度（初始为0），和nextIndex强关联
+}
+
+type AppendEntriesArgs struct {
+	Term         int
+	LeaderId     int
+	PrevLogIndex int
+	PrevLogTerm  int
+	Entries      []*LogEntry
+	LeaderCommit int
+}
+
+type AppendEntriesReply struct {
+	Term    int
+	Success bool
 }
 
 // return currentTerm and whether this server
@@ -67,6 +112,12 @@ func (rf *Raft) GetState() (int, bool) {
 	var term int
 	var isleader bool
 	// Your code here (2A).
+	term = rf.currentTerm
+	if rf.state == 3 {
+		isleader = true
+	} else {
+		isleader = false
+	}
 	return term, isleader
 }
 
@@ -114,6 +165,10 @@ func (rf *Raft) readPersist(data []byte) {
 //
 type RequestVoteArgs struct {
 	// Your data here (2A, 2B).
+	Term         int
+	CandidateId  int
+	LastLogIndex int
+	LastLogTerm  int
 }
 
 //
@@ -122,6 +177,8 @@ type RequestVoteArgs struct {
 //
 type RequestVoteReply struct {
 	// Your data here (2A).
+	Term        int
+	VoteGranted bool
 }
 
 //
@@ -230,6 +287,10 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (2A, 2B, 2C).
+	rf.state = 0
+	rf.lastReceive = time.Now()
+	rf.votedFor = -1
+	rf.leaderId = -1
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())

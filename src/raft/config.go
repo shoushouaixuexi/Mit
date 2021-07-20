@@ -15,13 +15,13 @@ import (
 	"sync"
 	"testing"
 
-	"../labrpc"
-
 	crand "crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"math/big"
 	"time"
+
+	"6.824/src/labrpc"
 )
 
 func randstring(n int) string {

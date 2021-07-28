@@ -110,8 +110,8 @@ type AppendEntriesArgs struct {
 }
 
 type AppendEntriesReply struct {
-	Term    int
-	Success bool
+	Term    int  // 当前任期,对于领导者而言 它会更新自己的任期
+	Success bool // 结果为真 如果跟随者所含有的条目和prevLogIndex以及prevLogTerm匹配上了
 }
 
 // return currentTerm and whether this server
@@ -201,7 +201,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	//填充响应信息
 	reply.Term = rf.currentTerm
 	reply.VoteGranted = false
-	// 候选者任期小于当前任期 返回
+	// 如果term < currentTerm返回 false （5.2 节）
 	if args.Term < rf.currentTerm {
 		return
 	}
@@ -212,7 +212,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.votedFor = -1
 		rf.leaderId = -1
 	}
-	// 	还未投票 或投票给追随的候选者
+	// 如果 votedFor 为空或者为 candidateId，并且候选人的日志至少和自己一样新，那么就投票给他（5.2 节，5.4 节）
 	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
 
 		lastLogTerm := 0
@@ -374,7 +374,7 @@ type AppendResult struct {
 func (rf *Raft) electionLoop() {
 	for !rf.killed() {
 		//
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		func() {
 			rf.mu.Lock()
@@ -386,7 +386,7 @@ func (rf *Raft) electionLoop() {
 			timeDifference := now.Sub(rf.lastReceiveTime) //计算从上次接收信息到现在时间差
 			// Follower -> Candidate
 			if rf.state == Follower {
-				// 超时时间>距离接收信息的时间
+				// 如果在超过选举超时时间的情况之前没有收到当前领导人（即该领导人的任期需与这个跟随者的当前任期相同）的心跳/附加日志，或者是给某个候选人投了票，就自己变成候选人
 				if timeDifference >= timeout {
 					rf.state = Candidate
 					//fmt.Println("state : Follower -> Candidate")
@@ -395,6 +395,12 @@ func (rf *Raft) electionLoop() {
 			}
 			// 	候选者开始选举
 			if rf.state == Candidate {
+				/*
+					自增当前的任期号（currentTerm）
+					给自己投票
+					重置选举超时计时器
+					发送请求投票的 RPC 给其他所有服务器
+				*/
 				rf.lastReceiveTime = now // 重置下次选举时间
 				rf.currentTerm += 1      // 发起新任期
 				rf.votedFor = rf.me      // 该任期投了自己
@@ -446,7 +452,7 @@ func (rf *Raft) electionLoop() {
 								maxTerm = voteResult.resp.Term
 							}
 						}
-						// 得到大多数vote后，立即离开
+						// 如果接收到大多数服务器的选票，那么就变成领导人
 						if finishCount == len(rf.peers) || voteCount > len(rf.peers)/2 {
 							goto VOTE_END
 						}
@@ -462,7 +468,7 @@ func (rf *Raft) electionLoop() {
 				if rf.state != Candidate {
 					return
 				}
-				// 发现了更高的任期，切回follower
+				// 发现了更高的任期，切回follower(如果接收到来自新的领导人的附加日志 RPC，转变成跟随者)
 				if maxTerm > rf.currentTerm {
 					rf.state = Follower
 					rf.leaderId = -1
@@ -503,7 +509,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	if args.Term < rf.currentTerm {
 		return
 	}
-	// 发现更大的任期，则转为该任期的follower
+	// 如果接收到的 RPC 请求或响应中，任期号T > currentTerm，那么就令 currentTerm 等于 T，并切换状态为跟随者（5.1 节）
 	if args.Term > rf.currentTerm {
 		rf.currentTerm = args.Term
 		rf.state = Follower
@@ -572,9 +578,9 @@ func (rf *Raft) appendEntriesLoop() {
 			if rf.state != Leader {
 				return
 			}
-			// 100ms广播1次
+			// 50ms广播1次(广播周期过长会导致不能通过测试，过短会导致占用cpu过高)
 			now := time.Now()
-			if now.Sub(rf.lastBroadcastTime) < 100*time.Millisecond {
+			if now.Sub(rf.lastBroadcastTime) < 50*time.Millisecond {
 				return
 			}
 			rf.lastBroadcastTime = time.Now()
@@ -655,12 +661,12 @@ func (rf *Raft) appendEntriesLoop() {
 func (rf *Raft) applyLogLoop(applyCh chan ApplyMsg) {
 	for !rf.killed() {
 
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 		var appliedMsgs = make([]ApplyMsg, 0)
 		func() {
 			rf.mu.Lock()
 			defer rf.mu.Unlock()
-			// 存在没有提交给状态机的索引
+			// 如果commitIndex > lastApplied，那么就 lastApplied 加一，并把log[lastApplied]应用到状态机中（5.3 节）
 			for rf.commitIndex > rf.lastApplied {
 				rf.lastApplied += 1
 				appliedMsgs = append(appliedMsgs, ApplyMsg{

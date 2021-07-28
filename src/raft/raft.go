@@ -19,6 +19,7 @@ package raft
 
 import (
 	"math/rand"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -42,8 +43,10 @@ import (
 //
 type ApplyMsg struct {
 	CommandValid bool
+
 	Command      interface{}
 	CommandIndex int
+	CommandTerm  int
 }
 
 type LogEntry struct {
@@ -80,26 +83,30 @@ type Raft struct {
 	lastBroadcastTime time.Time // 作为领导 上次广播的时间
 
 	// 所有服务器上的持久性状态 (在响应RPC请求之前 已经更新到了稳定的存储设备)
-	currentTerm int         // latest term server has seen(服务器已知最新的任期)
-	votedFor    int         // candidateId that received vote in current term(当前任期内收到选票的候选者id 如果没有投给任何候选者 则为空)
-	log         []*LogEntry // log entries(日志条目;每个条目包含了用于状态机的命令，以及领导者接收到该条目时的任期)
+	currentTerm int        // latest term server has seen(服务器已知最新的任期)
+	votedFor    int        // candidateId that received vote in current term(当前任期内收到选票的候选者id 如果没有投给任何候选者 则为空)
+	log         []LogEntry // log entries(日志条目;每个条目包含了用于状态机的命令，以及领导者接收到该条目时的任期)
 
 	// 所有服务器，易失状态
-	commitIndex int // 已知的最大已提交索引
-	lastApplied int // 当前应用到状态机的索引
+
+	commitIndex int // 已知的最大已提交索引（初始值为0，单调递增）
+	lastApplied int // 当前应用到状态机的索引（初始值为0，单调递增）
 
 	// 仅Leader，易失状态（成为leader时重置）
+
 	nextIndex  []int //	每个follower的log同步起点索引（初始为leader log的最后一项）
 	matchIndex []int // 每个follower的log同步进度（初始为0），和nextIndex强关联
+	// 应用层提交队列
+	applyCh chan ApplyMsg // 应用层的提交队列
 }
 
 type AppendEntriesArgs struct {
 	Term         int
 	LeaderId     int
-	PrevLogIndex int
-	PrevLogTerm  int
-	Entries      []*LogEntry
-	LeaderCommit int
+	PrevLogIndex int        // 紧邻新日志条目之前的那个日志条目的索引
+	PrevLogTerm  int        // 紧邻新日志条目之前的那个日志条目的任期
+	Entries      []LogEntry // 需要被保存的日志条目
+	LeaderCommit int        // 领导者的已知已提交的最高的日志条目的索引
 }
 
 type AppendEntriesReply struct {
@@ -212,16 +219,14 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		if len(rf.log) != 0 {
 			lastLogTerm = rf.log[len(rf.log)-1].Term
 		}
-		if args.LastLogTerm < lastLogTerm || args.LastLogIndex < len(rf.log) {
-			return
+		if args.LastLogTerm > lastLogTerm || (args.LastLogTerm == lastLogTerm && args.LastLogIndex >= len(rf.log)) {
+			reply.VoteGranted = true
+			rf.votedFor = args.CandidateId
+			rf.lastReceiveTime = time.Now()
 		}
-		reply.VoteGranted = true
-		rf.votedFor = args.CandidateId
-		rf.lastReceiveTime = time.Now()
 	}
 	//持久化
 	rf.persist()
-
 }
 
 //
@@ -278,7 +283,22 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	isLeader := true
 
 	// Your code here (2B).
-
+	// 2B
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	// 不是leader 返回
+	if rf.state != Leader {
+		return -1, -1, false
+	}
+	LogEntry := LogEntry{
+		Command: command,
+		Term:    rf.currentTerm,
+	}
+	rf.log = append(rf.log, LogEntry)
+	index = len(rf.log)
+	term = rf.currentTerm
+	rf.persist()
+	// 2B end
 	return index, term, isLeader
 }
 
@@ -327,12 +347,14 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.votedFor = -1
 	rf.leaderId = -1
 
-	go rf.electionLoop()
-
-	go rf.appendEntriesLoop()
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
+	// 2A
+	go rf.electionLoop()      //选举
+	go rf.appendEntriesLoop() //日志同步以及心跳包
+	// 2B
+	go rf.applyLogLoop(applyCh)
 	return rf
 }
 
@@ -348,19 +370,20 @@ type AppendResult struct {
 	resp   *AppendEntriesReply
 }
 
-//
+// leader选举函数
 func (rf *Raft) electionLoop() {
 	for !rf.killed() {
 		//
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 
 		func() {
 			rf.mu.Lock()
 			defer rf.mu.Unlock()
 
 			now := time.Now()
-			timeout := time.Duration(200+rand.Int31n(150)) * time.Millisecond // 超时随机化
-			timeDifference := now.Sub(rf.lastReceiveTime)                     //计算从上次接收信息到现在时间差
+			timeout := time.Duration(200+rand.Int31n(150)) * time.Millisecond // 超时随机化 200-350ms之间
+			//fmt.Println(timeout)
+			timeDifference := now.Sub(rf.lastReceiveTime) //计算从上次接收信息到现在时间差
 			// Follower -> Candidate
 			if rf.state == Follower {
 				// 超时时间>距离接收信息的时间
@@ -452,6 +475,15 @@ func (rf *Raft) electionLoop() {
 				if voteCount > len(rf.peers)/2 {
 					rf.state = Leader
 					rf.leaderId = rf.me
+					rf.nextIndex = make([]int, len(rf.peers))
+					for i := 0; i < len(rf.nextIndex); i++ {
+						//初始值为领导者最后的日志条目的索引+1
+						rf.nextIndex[i] = len(rf.log) + 1
+					}
+					rf.matchIndex = make([]int, len(rf.peers))
+					for i := 0; i < len(rf.peers); i++ {
+						rf.matchIndex[i] = 0
+					}
 					rf.lastBroadcastTime = time.Unix(0, 0) // 令appendEntries广播立即执行
 					return
 				}
@@ -460,62 +492,86 @@ func (rf *Raft) electionLoop() {
 	}
 }
 
-// lab2A 发送心跳包
+// 处理接收到的心跳包 sendAppendEntries对应的rpc处理函数
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
-	DPrintf("RaftNode[%d] Handle AppendEntries, LeaderId[%d] Term[%d] CurrentTerm[%d] state=[%d]",
-		rf.me, args.LeaderId, args.Term, rf.currentTerm, rf.state)
-	defer func() {
-		DPrintf("RaftNode[%d] Return AppendEntries, LeaderId[%d] Term[%d] CurrentTerm[%d] state=[%d]",
-			rf.me, args.LeaderId, args.Term, rf.currentTerm, rf.state)
-	}()
-
 	reply.Term = rf.currentTerm
 	reply.Success = false
-
+	// 返回假 如果领导者的任期 小于 接收者的当前任期（译者注：这里的接收者是指跟随者或者候选者）
 	if args.Term < rf.currentTerm {
 		return
 	}
-
 	// 发现更大的任期，则转为该任期的follower
 	if args.Term > rf.currentTerm {
 		rf.currentTerm = args.Term
 		rf.state = Follower
 		rf.votedFor = -1
-		rf.leaderId = -1
-		// 继续向下走
+		rf.persist()
 	}
-
 	// 认识新的leader
 	rf.leaderId = args.LeaderId
-	// 刷新活跃时间
+	// 刷新活跃时间 防止开始选举
 	rf.lastReceiveTime = time.Now()
 
-	// 日志操作lab-2A不实现
+	// 返回假 本地没有前一个日志
+	if len(rf.log) < args.PrevLogIndex {
+		return
+	}
+	// 返回假 如果接收者日志中没有包含这样一个条目 即该条目的任期在prevLogIndex上能和prevLogTerm匹配上
+	if args.PrevLogIndex > 0 && rf.log[args.PrevLogIndex-1].Term != args.PrevLogTerm {
+		return
+	}
+	// 2B 更新日志（使用leader发的日志替换本地日志）
+	for i, logEntry := range args.Entries {
+
+		index := args.PrevLogIndex + i + 1
+		if index > len(rf.log) {
+			rf.log = append(rf.log, logEntry)
+		} else {
+			if rf.log[index-1].Term != logEntry.Term {
+				//删除重叠日志
+				rf.log = rf.log[:index-1]
+				//推入leader发来的新日志
+				rf.log = append(rf.log, logEntry)
+			}
+		}
+	}
 	rf.persist()
+	/*
+		如果领导者的已知已经提交的最高的日志条目的索引leaderCommit 大于 接收者的已知已经提交的最高的日志条目的索引commitIndex
+		则把 接收者的已知已经提交的最高的日志条目的索引commitIndex 重置为领导者的已知已经提交的最高的日志条目的索引leaderCommit
+		或者是 上一个新条目的索引 取两者的最小值
+	*/
+	if args.LeaderCommit > rf.commitIndex {
+		rf.commitIndex = args.LeaderCommit
+		if len(rf.log) < rf.commitIndex {
+			rf.commitIndex = len(rf.log)
+		}
+	}
+	reply.Success = true
+	// 2B end
 }
 
+// 发送心跳包rpc
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
 	return ok
 }
 
-// lab-2A只做心跳，不考虑log同步
+// lab-2A做心跳包 lab-2B考虑log同步
 func (rf *Raft) appendEntriesLoop() {
 	for !rf.killed() {
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		func() {
 			rf.mu.Lock()
 			defer rf.mu.Unlock()
-
 			// 只有leader才向外广播心跳
 			if rf.state != Leader {
 				return
 			}
-
 			// 100ms广播1次
 			now := time.Now()
 			if now.Sub(rf.lastBroadcastTime) < 100*time.Millisecond {
@@ -527,28 +583,97 @@ func (rf *Raft) appendEntriesLoop() {
 				if peerId == rf.me {
 					continue
 				}
-
 				args := AppendEntriesArgs{}
 				args.Term = rf.currentTerm
 				args.LeaderId = rf.me
-				// log相关字段在lab-2A不处理
+				// 2B 填充日志同步需要的参数
+				args.LeaderCommit = rf.commitIndex
+				args.Entries = make([]LogEntry, 0)
+				args.PrevLogIndex = rf.nextIndex[peerId] - 1
+				if args.PrevLogIndex > 0 {
+					args.PrevLogTerm = rf.log[args.PrevLogIndex-1].Term
+				}
+				args.Entries = append(args.Entries, rf.log[rf.nextIndex[peerId]-1:]...)
+				//2B end
+
 				go func(id int, args1 *AppendEntriesArgs) {
-					DPrintf("RaftNode[%d] appendEntries starts, myTerm[%d] peerId[%d]", rf.me, args1.Term, id)
 					reply := AppendEntriesReply{}
 					if ok := rf.sendAppendEntries(id, args1, &reply); ok {
 						rf.mu.Lock()
 						defer rf.mu.Unlock()
+
+						// 如果rpc前不是leader状态了，直接返回
+						if rf.currentTerm != args1.Term {
+							return
+						}
+						// 如果接收到的 RPC 请求或响应中，任期号T > currentTerm，那么就令 currentTerm 等于 T，并切换状态为跟随者（5.1 节）
 						if reply.Term > rf.currentTerm { // 变成follower
 							rf.state = Follower
 							rf.leaderId = -1
 							rf.currentTerm = reply.Term
 							rf.votedFor = -1
 							rf.persist()
+							return
 						}
-						DPrintf("RaftNode[%d] appendEntries ends, peerTerm[%d] myCurrentTerm[%d] myState[%d]", rf.me, reply.Term, rf.currentTerm, rf.state)
+						// 2B
+						if reply.Success {
+							// 更新相应peer同步状态
+							rf.nextIndex[id] += len(args1.Entries)
+							rf.matchIndex[id] = rf.nextIndex[id] - 1
+
+							sortedMatchIndex := make([]int, 0)
+							sortedMatchIndex = append(sortedMatchIndex, len(rf.log))
+							for i := 0; i < len(rf.peers); i++ {
+								if i == rf.me {
+									continue
+								}
+								sortedMatchIndex = append(sortedMatchIndex, rf.matchIndex[i])
+							}
+							sort.Ints(sortedMatchIndex)
+							newCommitIndex := sortedMatchIndex[len(rf.peers)/2]
+							// 假设存在大于 commitIndex 的 N，使得大多数的 matchIndex[i] ≥ N 成立，且 log[N].term == currentTerm 成立，
+							// 则令 commitIndex 等于 N
+							//fmt.Println(len(rf.log), newCommitIndex)
+							if newCommitIndex > rf.commitIndex && rf.log[newCommitIndex-1].Term == rf.currentTerm {
+								rf.commitIndex = newCommitIndex
+							}
+						} else {
+							//日志不匹配 同步起点索引后退
+							rf.nextIndex[id] -= 1
+							if rf.nextIndex[id] < 1 {
+								rf.nextIndex[id] = 1
+							}
+						}
 					}
 				}(peerId, &args)
 			}
 		}()
+	}
+}
+
+//日志提交协程
+func (rf *Raft) applyLogLoop(applyCh chan ApplyMsg) {
+	for !rf.killed() {
+
+		time.Sleep(10 * time.Millisecond)
+		var appliedMsgs = make([]ApplyMsg, 0)
+		func() {
+			rf.mu.Lock()
+			defer rf.mu.Unlock()
+			// 存在没有提交给状态机的索引
+			for rf.commitIndex > rf.lastApplied {
+				rf.lastApplied += 1
+				appliedMsgs = append(appliedMsgs, ApplyMsg{
+					CommandValid: true,
+					Command:      rf.log[rf.lastApplied-1].Command,
+					CommandIndex: rf.lastApplied,
+					CommandTerm:  rf.log[rf.lastApplied-1].Term,
+				})
+			}
+		}()
+		// 留言(msg)锁外提交给应用层 应用层追加日志
+		for _, msg := range appliedMsgs {
+			applyCh <- msg
+		}
 	}
 }

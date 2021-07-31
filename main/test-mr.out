@@ -1,0 +1,295 @@
+*** Starting wc test.
+Distributing map task on 7th file ../pg-tom_sawyer.txt
+Got assigned map task on 7th file ../pg-tom_sawyer.txt
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Distributing map task on 5th file ../pg-metamorphosis.txt
+Got assigned map task on 5th file ../pg-metamorphosis.txt
+Map task on 5th file ../pg-metamorphosis.txt complete
+Distributing map task on 4th file ../pg-huckleberry_finn.txt
+Got assigned map task on 4th file ../pg-huckleberry_finn.txt
+Map task on 6th file ../pg-sherlock_holmes.txt complete
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Map task on 7th file ../pg-tom_sawyer.txt complete
+Distributing map task on 2th file ../pg-frankenstein.txt
+Got assigned map task on 2th file ../pg-frankenstein.txt
+Map task on 3th file ../pg-grimm.txt complete
+Distributing map task on 1th file ../pg-dorian_gray.txt
+Got assigned map task on 1th file ../pg-dorian_gray.txt
+Map task on 4th file ../pg-huckleberry_finn.txt complete
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Map task on 2th file ../pg-frankenstein.txt complete
+Map task on 0th file ../pg-being_ernest.txt complete
+Map task on 1th file ../pg-dorian_gray.txt complete
+Distributing reduce task on part 9 0th file 
+Got assigned reduce task on part 9
+Reduce task on 9th part complete
+Distributing reduce task on part 8 0th file 
+Got assigned reduce task on part 8
+Reduce task on 8th part complete
+Distributing reduce task on part 7 0th file 
+Got assigned reduce task on part 7
+Reduce task on 7th part complete
+Distributing reduce task on part 6 0th file 
+Got assigned reduce task on part 6
+Reduce task on 6th part complete
+Distributing reduce task on part 5 0th file 
+Got assigned reduce task on part 5
+Reduce task on 5th part complete
+Distributing reduce task on part 4 0th file 
+Got assigned reduce task on part 4
+Reduce task on 4th part complete
+Distributing reduce task on part 3 0th file 
+Got assigned reduce task on part 3
+Reduce task on 3th part complete
+Distributing reduce task on part 2 0th file 
+Got assigned reduce task on part 2
+Reduce task on 2th part complete
+Distributing reduce task on part 1 0th file 
+Got assigned reduce task on part 1
+Reduce task on 1th part complete
+Distributing reduce task on part 0 0th file 
+Got assigned reduce task on part 0
+Reduce task on 0th part complete
+Master all tasks complete. Nothing to do...
+--- wc test: PASS
+*** Starting indexer test.
+Distributing map task on 7th file ../pg-tom_sawyer.txt
+Got assigned map task on 7th file ../pg-tom_sawyer.txt
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Map task on 7th file ../pg-tom_sawyer.txt complete
+Distributing map task on 5th file ../pg-metamorphosis.txt
+Got assigned map task on 5th file ../pg-metamorphosis.txt
+Map task on 6th file ../pg-sherlock_holmes.txt complete
+Distributing map task on 4th file ../pg-huckleberry_finn.txt
+Got assigned map task on 4th file ../pg-huckleberry_finn.txt
+Map task on 5th file ../pg-metamorphosis.txt complete
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Map task on 3th file ../pg-grimm.txt complete
+Distributing map task on 2th file ../pg-frankenstein.txt
+Got assigned map task on 2th file ../pg-frankenstein.txt
+Map task on 4th file ../pg-huckleberry_finn.txt complete
+Distributing map task on 1th file ../pg-dorian_gray.txt
+Got assigned map task on 1th file ../pg-dorian_gray.txt
+Map task on 2th file ../pg-frankenstein.txt complete
+Map task on 1th file ../pg-dorian_gray.txt complete
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Map task on 0th file ../pg-being_ernest.txt complete
+Distributing reduce task on part 9 0th file 
+Got assigned reduce task on part 9
+Reduce task on 9th part complete
+Distributing reduce task on part 8 0th file 
+Got assigned reduce task on part 8
+Reduce task on 8th part complete
+Distributing reduce task on part 7 0th file 
+Got assigned reduce task on part 7
+Reduce task on 7th part complete
+Distributing reduce task on part 6 0th file 
+Got assigned reduce task on part 6
+Reduce task on 6th part complete
+Distributing reduce task on part 5 0th file 
+Got assigned reduce task on part 5
+Reduce task on 5th part complete
+Distributing reduce task on part 4 0th file 
+Got assigned reduce task on part 4
+Reduce task on 4th part complete
+Distributing reduce task on part 3 0th file 
+Got assigned reduce task on part 3
+Reduce task on 3th part complete
+Distributing reduce task on part 2 0th file 
+Got assigned reduce task on part 2
+Reduce task on 2th part complete
+Distributing reduce task on part 1 0th file 
+Got assigned reduce task on part 1
+Reduce task on 1th part complete
+Distributing reduce task on part 0 0th file 
+Got assigned reduce task on part 0
+Reduce task on 0th part complete
+Master all tasks complete. Nothing to do...
+--- indexer test: PASS
+*** Starting map parallelism test.
+Distributing map task on 7th file ../pg-tom_sawyer.txt
+Got assigned map task on 7th file ../pg-tom_sawyer.txt
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Map task on 7th file ../pg-tom_sawyer.txt complete
+Distributing map task on 5th file ../pg-metamorphosis.txt
+Got assigned map task on 5th file ../pg-metamorphosis.txt
+Map task on 6th file ../pg-sherlock_holmes.txt complete
+Distributing map task on 4th file ../pg-huckleberry_finn.txt
+Got assigned map task on 4th file ../pg-huckleberry_finn.txt
+Map task on 5th file ../pg-metamorphosis.txt complete
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Map task on 4th file ../pg-huckleberry_finn.txt complete
+Distributing map task on 2th file ../pg-frankenstein.txt
+Got assigned map task on 2th file ../pg-frankenstein.txt
+Map task on 3th file ../pg-grimm.txt complete
+Distributing map task on 1th file ../pg-dorian_gray.txt
+Map task on 2th file ../pg-frankenstein.txt complete
+Got assigned map task on 1th file ../pg-dorian_gray.txt
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Map task on 0th file ../pg-being_ernest.txt complete
+Map task on 1th file ../pg-dorian_gray.txt complete
+Distributing reduce task on part 9 0th file 
+Got assigned reduce task on part 9
+Reduce task on 9th part complete
+Distributing reduce task on part 8 0th file 
+Got assigned reduce task on part 8
+Reduce task on 8th part complete
+Distributing reduce task on part 7 0th file 
+Got assigned reduce task on part 7
+Reduce task on 7th part complete
+Distributing reduce task on part 6 0th file 
+Got assigned reduce task on part 6
+Reduce task on 6th part complete
+Distributing reduce task on part 5 0th file 
+Got assigned reduce task on part 5
+Reduce task on 5th part complete
+Distributing reduce task on part 4 0th file 
+Got assigned reduce task on part 4
+Reduce task on 4th part complete
+Distributing reduce task on part 3 0th file 
+Got assigned reduce task on part 3
+Reduce task on 3th part complete
+Distributing reduce task on part 2 0th file 
+Got assigned reduce task on part 2
+Reduce task on 2th part complete
+Distributing reduce task on part 1 0th file 
+Got assigned reduce task on part 1
+Reduce task on 1th part complete
+Distributing reduce task on part 0 0th file 
+Got assigned reduce task on part 0
+Reduce task on 0th part complete
+Master all tasks complete. Nothing to do...
+--- map parallelism test: PASS
+*** Starting reduce parallelism test.
+Distributing map task on 7th file ../pg-tom_sawyer.txt
+Got assigned map task on 7th file ../pg-tom_sawyer.txt
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Map task on 7th file ../pg-tom_sawyer.txt complete
+Distributing map task on 5th file ../pg-metamorphosis.txt
+Got assigned map task on 5th file ../pg-metamorphosis.txt
+Map task on 6th file ../pg-sherlock_holmes.txt complete
+Distributing map task on 4th file ../pg-huckleberry_finn.txt
+Got assigned map task on 4th file ../pg-huckleberry_finn.txt
+Map task on 5th file ../pg-metamorphosis.txt complete
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Map task on 4th file ../pg-huckleberry_finn.txt complete
+Distributing map task on 2th file ../pg-frankenstein.txt
+Got assigned map task on 2th file ../pg-frankenstein.txt
+Map task on 3th file ../pg-grimm.txt complete
+Distributing map task on 1th file ../pg-dorian_gray.txt
+Got assigned map task on 1th file ../pg-dorian_gray.txt
+Map task on 1th file ../pg-dorian_gray.txt complete
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Map task on 0th file ../pg-being_ernest.txt complete
+Map task on 2th file ../pg-frankenstein.txt complete
+Distributing reduce task on part 9 0th file 
+Got assigned reduce task on part 9
+Reduce task on 9th part complete
+Distributing reduce task on part 8 0th file 
+Got assigned reduce task on part 8
+Reduce task on 8th part complete
+Distributing reduce task on part 7 0th file 
+Got assigned reduce task on part 7
+Reduce task on 7th part complete
+Distributing reduce task on part 6 0th file 
+Got assigned reduce task on part 6
+Reduce task on 6th part complete
+Distributing reduce task on part 5 0th file 
+Got assigned reduce task on part 5
+Reduce task on 5th part complete
+Distributing reduce task on part 4 0th file 
+Got assigned reduce task on part 4
+Distributing reduce task on part 3 0th file 
+Got assigned reduce task on part 3
+Reduce task on 4th part complete
+Distributing reduce task on part 2 0th file 
+Got assigned reduce task on part 2
+Reduce task on 2th part complete
+Distributing reduce task on part 1 0th file 
+Got assigned reduce task on part 1
+Reduce task on 3th part complete
+Distributing reduce task on part 0 0th file 
+Got assigned reduce task on part 0
+Reduce task on 1th part complete
+Reduce task on 0th part complete
+Master all tasks complete. Nothing to do...
+--- reduce parallelism test: PASS
+*** Starting crash test.
+Distributing map task on 7th file ../pg-tom_sawyer.txt
+Got assigned map task on 7th file ../pg-tom_sawyer.txt
+Map task on 7th file ../pg-tom_sawyer.txt complete
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Distributing map task on 5th file ../pg-metamorphosis.txt
+Got assigned map task on 5th file ../pg-metamorphosis.txt
+Map task on 5th file ../pg-metamorphosis.txt complete
+Distributing map task on 4th file ../pg-huckleberry_finn.txt
+Got assigned map task on 4th file ../pg-huckleberry_finn.txt
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Distributing map task on 2th file ../pg-frankenstein.txt
+Got assigned map task on 2th file ../pg-frankenstein.txt
+Map task on 2th file ../pg-frankenstein.txt complete
+Distributing map task on 1th file ../pg-dorian_gray.txt
+Got assigned map task on 1th file ../pg-dorian_gray.txt
+Map task on 1th file ../pg-dorian_gray.txt complete
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Map task on 4th file ../pg-huckleberry_finn.txt complete
+Distributing map task on 0th file ../pg-being_ernest.txt
+Got assigned map task on 0th file ../pg-being_ernest.txt
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Distributing map task on 6th file ../pg-sherlock_holmes.txt
+Got assigned map task on 6th file ../pg-sherlock_holmes.txt
+Map task on 6th file ../pg-sherlock_holmes.txt complete
+Map task on 0th file ../pg-being_ernest.txt complete
+Distributing map task on 3th file ../pg-grimm.txt
+Got assigned map task on 3th file ../pg-grimm.txt
+Map task on 3th file ../pg-grimm.txt complete
+Distributing reduce task on part 9 0th file 
+Got assigned reduce task on part 9
+Distributing reduce task on part 8 0th file 
+Got assigned reduce task on part 8
+Reduce task on 8th part complete
+Distributing reduce task on part 7 0th file 
+Got assigned reduce task on part 7
+Reduce task on 7th part complete
+Distributing reduce task on part 6 0th file 
+Got assigned reduce task on part 6
+Reduce task on 6th part complete
+Distributing reduce task on part 5 0th file 
+Got assigned reduce task on part 5
+Distributing reduce task on part 4 0th file 
+Got assigned reduce task on part 4
+Reduce task on 4th part complete
+Distributing reduce task on part 3 0th file 
+Got assigned reduce task on part 3
+Reduce task on 3th part complete
+Distributing reduce task on part 2 0th file 
+Got assigned reduce task on part 2
+Reduce task on 2th part complete
+Distributing reduce task on part 1 0th file 
+Got assigned reduce task on part 1
+Reduce task on 1th part complete
+Distributing reduce task on part 0 0th file 
+Got assigned reduce task on part 0
+Reduce task on 9th part complete
+Reduce task on 0th part complete
+Reduce task on 5th part complete
+Master all tasks complete. Nothing to do...
+Master all tasks complete. Nothing to do...
+--- crash test: PASS
+*** PASSED ALL TESTS

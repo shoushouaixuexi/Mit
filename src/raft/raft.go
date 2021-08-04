@@ -536,10 +536,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 		if index > len(rf.log) {
 			rf.log = append(rf.log, logEntry)
 		} else {
+			// 如果一个已经存在的条目和新条目（译者注：即刚刚接收到的日志条目）发生了冲突（因为索引相同，任期不同），那么就删除这个已经存在的条目以及它之后的所有条目 （5.3 节）
 			if rf.log[index-1].Term != logEntry.Term {
 				//删除重叠日志
 				rf.log = rf.log[:index-1]
-				//推入leader发来的新日志
+				//追加日志中尚未存在的任何新条目
 				rf.log = append(rf.log, logEntry)
 			}
 		}
@@ -623,7 +624,7 @@ func (rf *Raft) appendEntriesLoop() {
 						}
 						// 2B
 						if reply.Success {
-							// 更新相应peer同步状态
+							// 如果成功：更新相应跟随者的 nextIndex 和 matchIndex
 							rf.nextIndex[id] += len(args1.Entries)
 							rf.matchIndex[id] = rf.nextIndex[id] - 1
 
@@ -644,7 +645,7 @@ func (rf *Raft) appendEntriesLoop() {
 								rf.commitIndex = newCommitIndex
 							}
 						} else {
-							//日志不匹配 同步起点索引后退
+							//如果因为日志不一致而失败，减少 nextIndex 重试
 							rf.nextIndex[id] -= 1
 							if rf.nextIndex[id] < 1 {
 								rf.nextIndex[id] = 1
